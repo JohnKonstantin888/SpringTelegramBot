@@ -16,6 +16,8 @@
 	<properties>
 		<java.version>17</java.version>
 		<telegram.version>6.5.0</telegram.version>
+		<mysql.connector.version>8.0.30</mysql.connector.version>
+		<emoji.java.version>5.1.1</emoji.java.version>
 	</properties>
 	<dependencies>
 
@@ -40,6 +42,23 @@
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>${mysql.connector.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.vdurmont</groupId>
+			<artifactId>emoji-java</artifactId>
+			<version>${emoji.java.version}</version>
 		</dependency>
 	</dependencies>
 
