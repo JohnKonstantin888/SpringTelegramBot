@@ -2,9 +2,13 @@ package com.example.SpringTelegramBot.service;
 
 import com.example.SpringTelegramBot.config.BotConfig;
 import com.example.SpringTelegramBot.model.Ads;
+import com.example.SpringTelegramBot.model.Joke;
 import com.example.SpringTelegramBot.model.User;
 import com.example.SpringTelegramBot.model.repository.AdsRepository;
+import com.example.SpringTelegramBot.model.repository.JokeRepository;
 import com.example.SpringTelegramBot.model.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,10 +28,9 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.File;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Slf4j
 @Component
@@ -36,6 +39,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     private UserRepository userRepository;
     @Autowired
     private AdsRepository adsRepository;
+
+    @Autowired
+    private JokeRepository jokeRepository;
     private final BotConfig botConfig;
     private static final String HELP_TEXT = "This bot is created to demonstrate Spring capabilities.\n\n" +
             "You can execute commands from the main menu on the left or by typing a command:\n\n" +
@@ -43,6 +49,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             "Type /mydata to see data stored about yourself\n\n" +
             "Type /deletedata was deleted stored about yourself\n\n" +
             "Type /register to registration\n\n" +
+            "Type /joke to get random joke\n\n" +
             "Type /help to see this message again";
 
     private static final String YES_BUTTON = "YES_BUTTON";
@@ -57,7 +64,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         listOfCommands.add(new BotCommand("/mydata", "get your data stored"));
         listOfCommands.add(new BotCommand("/deletedata", "delete my data"));
         listOfCommands.add(new BotCommand("/help", "info how to use this bot"));
+        listOfCommands.add(new BotCommand("/joke", "get random joke"));
         listOfCommands.add(new BotCommand("/register", "registration"));
+        listOfCommands.add(new BotCommand("/settings", "set your preferences"));
         try {
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
         } catch (TelegramApiException e) {
@@ -89,8 +98,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 switch (message) {
                     case "/start" -> {
                         registerUser(update.getMessage());
-                        startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
+                        showStart(chatId, update.getMessage().getChat().getFirstName());
                     }
+                    case "/joke" -> sendMessage(chatId, getRandomJoke().toString());
                     case "/help" -> prepareAndSendMessage(chatId, HELP_TEXT);
                     case "/register" -> register(chatId);
                     case "/mydata" -> {
@@ -167,7 +177,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void startCommandReceived(long chatId, String name) {
+    private void showStart(long chatId, String name) {
         String answer = EmojiParser.parseToUnicode("Hi, " + name + ", nice to meet you!" + " :blush:");
         log.info("Replied to user " + name);
         sendMessage(chatId, answer);
@@ -186,6 +196,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         row.add("/start");
         row.add("/help");
+        row.add("/joke");
 
         keyboardRows.add(row);
 
@@ -237,5 +248,25 @@ public class TelegramBot extends TelegramLongPollingBot {
         for (Ads ad : ads) {
             users.forEach(user -> prepareAndSendMessage(user.getChatId(), ad.getAdText()));
         }
+    }
+
+    private Joke getRandomJoke() {
+        if(jokeRepository.findById(1).stream().findFirst().isEmpty()) {
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                TypeFactory typeFactory = objectMapper.getTypeFactory();
+                List<Joke> jokeList = objectMapper.readValue(new File("db/stupidstuff.json"),
+                        typeFactory.constructCollectionType(List.class, Joke.class));
+                jokeRepository.saveAll(jokeList);
+            } catch (Exception e) {
+                log.error(Arrays.toString(e.getStackTrace()));
+            }
+        }
+        return jokeRepository.findById(randomInt(1, 3773)).stream().findFirst().orElse(null);
+    }
+
+    private int randomInt(int min, int max) {
+        Random random = new Random();
+        return random.nextInt(max - min + 1) + min;
     }
 }

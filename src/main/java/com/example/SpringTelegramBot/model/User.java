@@ -12,6 +12,20 @@ public class User {
     @Id
     private Long chatId;
 
+    private Boolean embedJoke;
+
+    private String phoneNumber;
+
+    private Double latitude;
+
+    private Double longitude;
+
+    private String bio;
+
+    private String description;
+
+    private String pinnedMessage;
+
     private String firstName;
 
     private String lastName;
